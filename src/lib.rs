@@ -17,6 +17,21 @@ pub trait ReadPod: Read {
         self.read_exact(<[u8]>::from_ref_mut(&mut pod).unwrap())?;
         Ok(pod)
     }
+
+    /// Read a slice of pods from a Read stream.
+    /// Uses a single read_exact call.
+    fn read_pod_slice<T: Pod>(&mut self, len: usize) -> io::Result<Vec<T>> {
+        let mut pod = Vec::with_capacity(len);
+        let mut slice = unsafe {
+            slice::from_raw_parts_mut(
+                pod.as_mut_ptr(), len
+            )
+        };
+
+        self.read_exact(<[u8]>::from_slice_mut(&mut slice).unwrap())?;
+        unsafe { pod.set_len(len); }
+        Ok(pod)
+    }
 }
 
 /// Extension for writing Pod types.
