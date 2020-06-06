@@ -248,7 +248,7 @@ pub struct Le<T>(T);
 impl<T: Endian + Copy> Le<T> {
     /// Convert into little endian.
     pub fn from(other: T) -> Self {
-        Self(T::ne_to_be(other))
+        Self(T::ne_to_le(other))
     }
 
     /// Convert back into native endian.
