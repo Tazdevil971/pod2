@@ -219,8 +219,7 @@ impl_endian! {
 
 /// Wrapper type holding the data in big endian order.
 #[repr(transparent)]
-#[derive(Clone, Copy, Hash)]
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Be<T>(T);
 
 impl<T: Endian + Copy> Be<T> {
@@ -237,14 +236,13 @@ impl<T: Endian + Copy> Be<T> {
 
 impl<T: Endian + Copy + Debug> Debug for Be<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.into())
+        write!(f, "Be({:?})", self.into())
     }
 }
 
 /// Wrapper type holding the data in little endian order.
 #[repr(transparent)]
-#[derive(Clone, Copy, Hash)]
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Le<T>(T);
 
 impl<T: Endian + Copy> Le<T> {
@@ -261,7 +259,7 @@ impl<T: Endian + Copy> Le<T> {
 
 impl<T: Endian + Copy + Debug> Debug for Le<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.into())
+        write!(f, "Le({:?})", self.into())
     }
 }
 

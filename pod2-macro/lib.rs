@@ -21,8 +21,7 @@ pub fn derive_pod(item: TokenStream) -> TokenStream {
 
     quote!(
         const _: () = {
-            // extern crate pod2;
-            use crate as pod2;
+            extern crate pod2;
             use std::mem;
             
             unsafe impl pod2::Pod for #ident {}
