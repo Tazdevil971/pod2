@@ -5,6 +5,28 @@ use std::mem::{self, size_of};
 use std::fmt::{self, Debug};
 use std::io::{self, Write, Read};
 
+/// Extension for taking Pod types.
+pub trait TakePod {
+    /// Take a single pod from a byte slice.
+    fn take_pod<T: Pod>(&mut self) -> Option<&T>;
+    /// Take a slice of pods from a byte slice.
+    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&[T]>;
+}
+
+impl TakePod for &[u8] {
+    fn take_pod<T: Pod>(&mut self) -> Option<&T> {
+        let pod = self.get(..size_of::<T>())?;
+        *self = self.get(size_of::<T>()..)?;
+        T::from_slice(pod)
+    }
+
+    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&[T]> {
+        let pod = self.get(..size_of::<T>() * len)?;
+        *self = self.get(size_of::<T>() * len..)?;
+        <[T]>::from_slice(pod)
+    }
+}
+
 /// Extension for reading Pod types.
 pub trait ReadPod: Read {
     /// Read a single pod from a Read stream.
