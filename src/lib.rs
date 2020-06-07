@@ -11,9 +11,7 @@ pub trait ReadPod: Read {
     fn read_pod<T: Pod>(&mut self) -> io::Result<T> {
         // TODO: replace this when 
         // maybe_uninit_ref gets stabilized
-        let mut pod = unsafe { 
-            mem::MaybeUninit::<T>::uninit().assume_init()
-        };
+        let mut pod = T::zeroed();
         self.read_exact(<[u8]>::from_ref_mut(&mut pod).unwrap())?;
         Ok(pod)
     }
@@ -21,15 +19,8 @@ pub trait ReadPod: Read {
     /// Read a slice of pods from a Read stream.
     /// Uses a single read_exact call.
     fn read_pod_slice<T: Pod>(&mut self, len: usize) -> io::Result<Vec<T>> {
-        let mut pod = Vec::with_capacity(len);
-        let mut slice = unsafe {
-            slice::from_raw_parts_mut(
-                pod.as_mut_ptr(), len
-            )
-        };
-
-        self.read_exact(<[u8]>::from_slice_mut(&mut slice).unwrap())?;
-        unsafe { pod.set_len(len); }
+        let mut pod: Vec<T> = (0..len).map(|_| T::zeroed()).collect();
+        self.read_exact(<[u8]>::from_slice_mut(&mut pod).unwrap())?;
         Ok(pod)
     }
 }
