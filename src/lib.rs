@@ -220,7 +220,7 @@ impl<T: Pod> FromPod for [T] {
 }
 
 #[doc(hidden)]
-pub trait Endian {
+pub trait Endian: Copy {
     fn be_to_ne(self) -> Self;
     fn ne_to_be(self) -> Self;
 
@@ -250,21 +250,27 @@ impl_endian! {
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Be<T>(T);
 
-impl<T: Endian + Copy> Be<T> {
-    /// Convert into big endian.
-    pub fn from(other: T) -> Self {
-        Self(T::ne_to_be(other))
+impl<T: Endian> Be<T> {
+    /// Get the internal value.
+    pub fn get(&self) -> T {
+        T::be_to_ne(self.0)
     }
 
-    /// Convert back into native endian.
-    pub fn into(&self) -> T {
-        T::be_to_ne(self.0)
+    /// Set the internal value.
+    pub fn set(&mut self, val: T) {
+        self.0 = T::ne_to_be(val);
     }
 }
 
-impl<T: Endian + Copy + Debug> Debug for Be<T> {
+impl<T: Endian> From<T> for Be<T> {
+    fn from(val: T) -> Self {
+        Self(T::be_to_ne(val))
+    }
+}
+
+impl<T: Endian + Debug> Debug for Be<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Be({:?})", self.into())
+        write!(f, "Be({:?})", self.get())
     }
 }
 
@@ -273,21 +279,27 @@ impl<T: Endian + Copy + Debug> Debug for Be<T> {
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Le<T>(T);
 
-impl<T: Endian + Copy> Le<T> {
-    /// Convert into little endian.
-    pub fn from(other: T) -> Self {
-        Self(T::ne_to_le(other))
+impl<T: Endian> Le<T> {
+    /// Get the internal value.
+    pub fn get(&self) -> T {
+        T::le_to_ne(self.0)
     }
 
-    /// Convert back into native endian.
-    pub fn into(&self) -> T {
-        T::le_to_ne(self.0)
+    /// Set the internal value.
+    pub fn set(&mut self, val: T) {
+        self.0 = T::ne_to_le(val);
     }
 }
 
-impl<T: Endian + Copy + Debug> Debug for Le<T> {
+impl<T: Endian> From<T> for Le<T> {
+    fn from(val: T) -> Self {
+        Self(T::le_to_ne(val))
+    }
+}
+
+impl<T: Endian + Debug> Debug for Le<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Le({:?})", self.into())
+        write!(f, "Le({:?})", self.get())
     }
 }
 
