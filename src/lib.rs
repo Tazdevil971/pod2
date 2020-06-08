@@ -6,21 +6,21 @@ use std::fmt::{self, Debug};
 use std::io::{self, Write, Read};
 
 /// Extension for taking Pod types.
-pub trait TakePod {
+pub trait TakePod<'a> {
     /// Take a single pod from a byte slice.
-    fn take_pod<T: Pod>(&mut self) -> Option<&T>;
+    fn take_pod<T: Pod>(&mut self) -> Option<&'a T>;
     /// Take a slice of pods from a byte slice.
-    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&[T]>;
+    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&'a [T]>;
 }
 
-impl TakePod for &[u8] {
-    fn take_pod<T: Pod>(&mut self) -> Option<&T> {
+impl<'a> TakePod<'a> for &'a [u8] {
+    fn take_pod<T: Pod>(&mut self) -> Option<&'a T> {
         let pod = self.get(..size_of::<T>())?;
         *self = self.get(size_of::<T>()..)?;
         T::from_slice(pod)
     }
 
-    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&[T]> {
+    fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&'a [T]> {
         let pod = self.get(..size_of::<T>() * len)?;
         *self = self.get(size_of::<T>() * len..)?;
         <[T]>::from_slice(pod)
