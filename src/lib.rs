@@ -17,13 +17,13 @@ impl<'a> TakePod<'a> for &'a [u8] {
     fn take_pod<T: Pod>(&mut self) -> Option<&'a T> {
         let pod = self.get(..size_of::<T>())?;
         *self = self.get(size_of::<T>()..)?;
-        T::from_slice(pod)
+        pod.into_ref()
     }
 
     fn take_pod_slice<T: Pod>(&mut self, len: usize) -> Option<&'a [T]> {
         let pod = self.get(..size_of::<T>() * len)?;
         *self = self.get(size_of::<T>() * len..)?;
-        <[T]>::from_slice(pod)
+        pod.into_slice()
     }
 }
 
@@ -34,7 +34,7 @@ pub trait ReadPod: Read {
         // TODO: replace this when 
         // maybe_uninit_ref gets stabilized
         let mut pod = T::zeroed();
-        self.read_exact(<[u8]>::from_ref_mut(&mut pod).unwrap())?;
+        self.read_exact(pod.into_slice_mut().unwrap())?;
         Ok(pod)
     }
 
@@ -42,7 +42,7 @@ pub trait ReadPod: Read {
     /// Uses a single read_exact call.
     fn read_pod_slice<T: Pod>(&mut self, len: usize) -> io::Result<Vec<T>> {
         let mut pod: Vec<T> = (0..len).map(|_| T::zeroed()).collect();
-        self.read_exact(<[u8]>::from_slice_mut(&mut pod).unwrap())?;
+        self.read_exact(pod.into_slice_mut().unwrap())?;
         Ok(pod)
     }
 }
@@ -51,13 +51,13 @@ pub trait ReadPod: Read {
 pub trait WritePod: Write {
     /// Write a single pod from a Write stream.
     fn write_pod<T: Pod>(&mut self, pod: &T) -> io::Result<()> {
-        self.write_all(<[u8]>::from_ref(pod).unwrap())
+        self.write_all(pod.into_slice().unwrap())
     }
 
     /// Write a slice of pods to a Write stream.
     /// Uses a single write_all call.
     fn write_pod_slice<T: Pod>(&mut self, pod: &[T]) -> io::Result<()> {
-        self.write_all(<[u8]>::from_slice(pod).unwrap())
+        self.write_all(pod.into_slice().unwrap())
     }
 }
 
