@@ -1,3 +1,6 @@
+//! Pod2 is a library enabling the usage of [Pod](https://en.wikipedia.org/wiki/Passive_data_structure) data types in rust.
+
+/// Macro for automatically deriving Pod.
 pub use pod2_macro::Pod;
 
 use std::slice;
@@ -6,6 +9,33 @@ use std::fmt::{self, Debug};
 use std::io::{self, Write, Read};
 
 /// Extension for taking Pod types.
+/// It's used to parse byte slices with
+/// zero copies.
+/// # Example
+/// ```
+/// # use pod2::*;
+/// # fn main() {
+/// // Example of a buffer containing data
+/// let mut buf: &[u8] = &[
+///     0x00, 0x01, 
+///     0x00, 0x02,
+///     0xcc, 0xdd, 0xee,
+///     0xff, 0xff
+/// ]; 
+/// 
+/// let a: &Be<u16> = buf.take_pod().unwrap();
+/// assert_eq!(a.get(), 1);
+/// 
+/// let b: &Be<u16> = buf.take_pod().unwrap();
+/// assert_eq!(b.get(), 2);
+/// 
+/// let c: &[u8] = buf.take_pod_slice(3).unwrap();
+/// assert_eq!(c, &[ 0xcc, 0xdd, 0xee ]);
+/// 
+/// // Check what is left in the slice
+/// assert_eq!(buf, &[ 0xff, 0xff ]);
+/// # }
+/// ```
 pub trait TakePod<'a> {
     /// Take a single pod from a byte slice.
     fn take_pod<T: Pod>(&mut self) -> Option<&'a T>;
@@ -28,6 +58,31 @@ impl<'a> TakePod<'a> for &'a [u8] {
 }
 
 /// Extension for reading Pod types.
+/// This differs from `TakePod` as read data
+/// is then owned, and it works on any `Read`.
+/// # Example
+/// ```
+/// # use pod2::*;
+/// # fn main() {
+/// // Some readable source
+/// let mut reader: &[u8] = &[
+///     0x00, 0x01, 
+///     0x00, 0x02,
+///     0xcc, 0xdd, 0xee
+/// ];
+/// 
+/// let a: Be<u16> = reader.read_pod().unwrap();
+/// assert_eq!(a.get(), 1);
+/// 
+/// let b: Be<u16> = reader.read_pod().unwrap();
+/// assert_eq!(b.get(), 2);
+/// 
+/// // This is very efficent as it 
+/// // uses a single read_exact call
+/// let c: Vec<u8> = reader.read_pod_slice(3).unwrap();
+/// assert_eq!(c, &[ 0xcc, 0xdd, 0xee ]);
+/// # }
+/// ```
 pub trait ReadPod: Read {
     /// Read a single pod from a Read stream.
     fn read_pod<T: Pod>(&mut self) -> io::Result<T> {
@@ -48,6 +103,24 @@ pub trait ReadPod: Read {
 }
 
 /// Extension for writing Pod types.
+/// # Example
+/// ```
+/// # use pod2::*;
+/// # fn main() {
+/// // Some writable sink
+/// let mut writer: Vec<u8> = Vec::new();
+/// 
+/// writer.write_pod::<Be<u16>>(&Be::from(1)).unwrap();
+/// writer.write_pod::<Be<u16>>(&Be::from(2)).unwrap();
+/// writer.write_pod_slice::<u8>(&[ 0xcc, 0xdd, 0xee ]).unwrap();
+/// 
+/// assert_eq!(&writer, &[
+///     0x00, 0x01, 
+///     0x00, 0x02,
+///     0xcc, 0xdd, 0xee
+/// ]);
+/// # }
+/// ```
 pub trait WritePod: Write {
     /// Write a single pod from a Write stream.
     fn write_pod<T: Pod>(&mut self, pod: &T) -> io::Result<()> {
@@ -68,7 +141,7 @@ impl<T: Write> WritePod for T {}
 /// # Safety
 /// Implementing this trait is not safe because it internally
 /// uses a lot of `unsafe` on the assumption that the underlying
-/// data is plain, and reinterpretation of the data is safe.
+/// data is passive, and reinterpretation of the data is safe.
 /// Use the derive macro in order to automatically check the data,
 /// and avoid unsafe code.
 pub unsafe trait Pod: Sized {
@@ -312,6 +385,21 @@ impl_endian! {
 }
 
 /// Wrapper type holding the data in big endian order.
+/// # Example
+/// ```
+/// # use pod2::*;
+/// # fn main() {
+/// let mut buf: [u8; 4] = [0; 4];
+/// 
+/// let int: &mut Be<u32> = Be::from_ref_mut(&mut buf).unwrap();
+/// assert_eq!(int.get(), 0);
+/// 
+/// // The underlying data will be stored as
+/// // big endian no matter the native endianess.
+/// int.set(0xa1b2c3d4);
+/// assert_eq!(&buf, &[ 0xa1, 0xb2, 0xc3, 0xd4 ]);
+/// # }
+/// ```
 #[repr(transparent)]
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Be<T>(T);
@@ -330,7 +418,7 @@ impl<T: Endian> Be<T> {
 
 impl<T: Endian> From<T> for Be<T> {
     fn from(val: T) -> Self {
-        Self(T::be_to_ne(val))
+        Self(T::ne_to_be(val))
     }
 }
 
@@ -341,6 +429,21 @@ impl<T: Endian + Debug> Debug for Be<T> {
 }
 
 /// Wrapper type holding the data in little endian order.
+/// # Example
+/// ```
+/// # use pod2::*;
+/// # fn main() {
+/// let mut buf: [u8; 4] = [0; 4];
+/// 
+/// let int: &mut Le<u32> = Le::from_ref_mut(&mut buf).unwrap();
+/// assert_eq!(int.get(), 0);
+/// 
+/// // The underlying data will be stored as
+/// // little endian no matter the native endianess.
+/// int.set(0xa1b2c3d4);
+/// assert_eq!(&buf, &[ 0xd4, 0xc3, 0xb2, 0xa1 ]);
+/// # }
+/// ```
 #[repr(transparent)]
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Le<T>(T);
@@ -359,7 +462,7 @@ impl<T: Endian> Le<T> {
 
 impl<T: Endian> From<T> for Le<T> {
     fn from(val: T) -> Self {
-        Self(T::le_to_ne(val))
+        Self(T::ne_to_le(val))
     }
 }
 
