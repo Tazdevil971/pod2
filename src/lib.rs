@@ -111,7 +111,7 @@ impl_pod!(
     100 128 256 512 1024 2048 4096
 );
 
-/// Trait marking an object that can be constructed from a pod
+/// Trait marking an object that can be constructed from a pod.
 pub trait FromPod {
     /// Create a Self reference from a Pod reference.
     fn from_ref<U: Pod>(other: &U) -> Option<&Self>;
@@ -121,6 +121,18 @@ pub trait FromPod {
     fn from_ref_mut<U: Pod>(other: &mut U) -> Option<&mut Self>;
     /// Create a Self reference from a Pod slice.
     fn from_slice_mut<U: Pod>(other: &mut [U]) -> Option<&mut Self>;
+}
+
+/// Trait for creating pod types.
+pub trait IntoPod {
+    /// Create a Pod reference from self.
+    fn into_ref<U: Pod>(&self) -> Option<&U>;
+    /// Create a Pod slice from self.
+    fn into_slice<U: Pod>(&self) -> Option<&[U]>;
+    /// Create a Pod reference from self.
+    fn into_ref_mut<U: Pod>(&mut self) -> Option<&mut U>;
+    /// Create a Pod slice from self.
+    fn into_slice_mut<U: Pod>(&mut self) -> Option<&mut [U]>;
 }
 
 impl<T: Pod> FromPod for T {
@@ -162,6 +174,24 @@ impl<T: Pod> FromPod for T {
         } else {
             None
         }
+    }
+}
+
+impl<T: FromPod + Pod> IntoPod for T {
+    fn into_ref<U: Pod>(&self) -> Option<&U> {
+        U::from_ref(self)
+    }
+
+    fn into_slice<U: Pod>(&self) -> Option<&[U]> {
+        <[U]>::from_ref(self)
+    }
+
+    fn into_ref_mut<U: Pod>(&mut self) -> Option<&mut U> {
+        U::from_ref_mut(self)
+    }
+
+    fn into_slice_mut<U: Pod>(&mut self) -> Option<&mut [U]> {
+        <[U]>::from_ref_mut(self)
     }
 }
 
@@ -216,6 +246,24 @@ impl<T: Pod> FromPod for [T] {
         } else {
             None
         }
+    }
+}
+
+impl<T: FromPod + Pod> IntoPod for [T] {
+    fn into_ref<U: Pod>(&self) -> Option<&U> {
+        U::from_slice(self)
+    }
+
+    fn into_slice<U: Pod>(&self) -> Option<&[U]> {
+        <[U]>::from_slice(self)
+    }
+
+    fn into_ref_mut<U: Pod>(&mut self) -> Option<&mut U> {
+        U::from_slice_mut(self)
+    }
+
+    fn into_slice_mut<U: Pod>(&mut self) -> Option<&mut [U]> {
+        <[U]>::from_slice_mut(self)
     }
 }
 
