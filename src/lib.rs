@@ -219,6 +219,24 @@ impl<T: Pod> FromPod for [T] {
     }
 }
 
+impl FromPod for str {
+    fn from_ref<U: Pod>(other: &U) -> Option<&Self> {
+        std::str::from_utf8(<[u8]>::from_ref(other)?).ok()
+    }
+
+    fn from_slice<U: Pod>(other: &[U]) -> Option<&Self> {
+        std::str::from_utf8(<[u8]>::from_slice(other)?).ok()
+    }
+
+    fn from_ref_mut<U: Pod>(other: &mut U) -> Option<&mut Self> {
+        std::str::from_utf8_mut(<[u8]>::from_ref_mut(other)?).ok()
+    }
+
+    fn from_slice_mut<U: Pod>(other: &mut [U]) -> Option<&mut Self> {
+        std::str::from_utf8_mut(<[u8]>::from_slice_mut(other)?).ok()
+    }
+}
+
 #[doc(hidden)]
 pub trait Endian: Copy {
     fn be_to_ne(self) -> Self;
